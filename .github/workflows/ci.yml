@@ -10,7 +10,11 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    # Поднимаем БД для тестов внутри GitHub Actions
+    # ВАЖНО: Даем пайплайну права на запись пакетов (образов) в твой репозиторий
+    permissions:
+      contents: read
+      packages: write
+
     services:
       postgres:
         image: postgres:15-alpine
@@ -42,10 +46,31 @@ jobs:
 
     - name: Run Functional Tests (Pytest)
       env:
-        # Передаем секреты из GitHub в переменные окружения для тестов
         DATABASE_URL: postgresql://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@localhost:5432/${{ secrets.DB_NAME }}
       run: |
         pytest test_app.py
 
-    - name: Build Docker Image
-      run: docker build -t my-crud-app .
+    # --- НОВЫЕ ШАГИ ДЛЯ GITHUB PACKAGES ---
+
+    - name: Log in to GitHub Container Registry (GHCR)
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }} # Этот токен GitHub создает сам!
+
+    - name: Convert repository name to lowercase
+      # Docker требует, чтобы имя образа было строго маленькими буквами. 
+      # Этот шаг переводит имя твоего репозитория в нижний регистр, чтобы не было ошибок.
+      run: echo "REPO=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
+
+    - name: Build and Push Docker Image
+      run: |
+        # Формируем правильное имя: ghcr.io/твой-ник/твой-репозиторий
+        IMAGE_NAME=ghcr.io/${{ env.REPO }}
+        
+        # Собираем образ и ставим ему тег latest
+        docker build -t $IMAGE_NAME:latest .
+        
+        # Отправляем образ в GitHub Packages
+        docker push $IMAGE_NAME:latest
