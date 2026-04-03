@@ -10,7 +10,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    # ВАЖНО: Даем пайплайну права на запись пакетов (образов) в твой репозиторий
+    # ВАЖНО: Даем пайплайну права на запись пакетов (образов) в репозиторий
     permissions:
       contents: read
       packages: write
@@ -61,12 +61,12 @@ jobs:
 
     - name: Convert repository name to lowercase
       # Docker требует, чтобы имя образа было строго маленькими буквами. 
-      # Этот шаг переводит имя твоего репозитория в нижний регистр, чтобы не было ошибок.
+      # Этот шаг переводит имя репозитория в нижний регистр, чтобы не было ошибок.
       run: echo "REPO=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
 
     - name: Build and Push Docker Image
       run: |
-        # Формируем правильное имя: ghcr.io/твой-ник/твой-репозиторий
+        # Формируем правильное имя: ghcr.io/ник/репозиторий
         IMAGE_NAME=ghcr.io/${{ env.REPO }}
         
         # Собираем образ и ставим ему тег latest
